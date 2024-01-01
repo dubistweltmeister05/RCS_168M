@@ -81,7 +81,7 @@
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1362782711.1762899123" name="bno_stm.h" rcbsApplicability="disable" resourcePath="Core/Inc/bno_stm.h" toolsToInvoke=""/>
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1362782711.1888596350" name="bno055_self.h" rcbsApplicability="disable" resourcePath="Core/Inc/bno055_self.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="Inc/bno055_self.h|Inc/bno_stm.h|Src/bno_self.c|Src/syscalls.c|Src/sysmem.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry excluding="Inc/bno055.h|Src/bno.c|Inc/bno_stm.h|Src/syscalls.c|Src/sysmem.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 					</sourceEntries>
 				</configuration>

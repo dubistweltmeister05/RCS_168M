@@ -1,4 +1,4 @@
-"./Src/Ps4_Interfacing_Arduino_7_bytes.o"
+"./Src/Ps4_Interfacing_Arduino.o"
 "./Startup/startup_stm32f407vgtx.o"
 "./drivers/src/stm32F407_gpio_driver.o"
 "./drivers/src/stm32F407_i2c_driver.o"

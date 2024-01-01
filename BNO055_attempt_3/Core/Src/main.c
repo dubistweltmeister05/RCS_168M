@@ -99,10 +99,23 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  bno055_vector_t v = bno055_getVectorGyroscope();
-//	     printf("Heading: %.2f Roll: %.2f Pitch: %.2f\r\n", v.x, v.y, v.z);
-	     v = bno055_getVectorQuaternion();
-	     printf("W: %.2f X: %.2f Y: %.2f Z: %.2f\r\n", v.w, v.x, v.y, v.z);
+	  bno055_vector_t v = bno055_getVectorEuler();
+	     printf("Heading: %.2f Roll: %.2f Pitch: %.2f\r\n", v.x, v.y, v.z);
+
+	     if (v.x>0 && v.x<90)
+	    	 HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
+
+	     if (v.x>90 && v.x<180)
+	    	 HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+
+	     if (v.x>180 && v.x<270)
+	    	 HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
+
+	     if (v.x>270 && v.x<360)
+	    	 HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+
+//	     v = bno055_getVectorQuaternion();
+//	     printf("W: %.2f X: %.2f Y: %.2f Z: %.2f\r\n", v.w, v.x, v.y, v.z);
 	     HAL_Delay(1000);
     /* USER CODE BEGIN 3 */
   }
