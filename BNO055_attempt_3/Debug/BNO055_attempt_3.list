@@ -2986,6 +2986,7 @@ void HAL_MspInit(void)
 
   /* USER CODE END MspInit 0 */
 
+
   __HAL_RCC_SYSCFG_CLK_ENABLE();
  8001ab6:	2300      	movs	r3, #0
  8001ab8:	607b      	str	r3, [r7, #4]

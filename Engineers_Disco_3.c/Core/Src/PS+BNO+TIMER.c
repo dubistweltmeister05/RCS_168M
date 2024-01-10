@@ -4,11 +4,11 @@
  *  Created on: Dec 31, 2023
  *      Author: wardawg
  *
- *      PS4 - Interface
+ *      BNO- Interface
  *      PB6 -> I2C1 SCL
  *      PB7 -> I2C1 SDA
  *
- *      BNO Interface
+ *      PS4 Interface
  *      PB10 -> I2C2 SCL
  *      PB11 -> I2C2 SDA
  */
@@ -42,7 +42,7 @@ TIM_HandleTypeDef htimer4;
 volatile uint32_t ccr_content;
 I2C_Handle_t I2C2Handle;
 
-uint8_t rcv_buf[7];
+uint8_t rcv_buf[9];
 
 /*
  * Headers for the Functions
@@ -55,7 +55,7 @@ void Error_Handler();
 
 void timer4_init();
 
-void GPIO_Init();
+void GPIO_TIMER_Init();
 
 void I2C2_GPIOInits(void);
 
@@ -78,19 +78,19 @@ int main() {
 
 	uint8_t commandcode;
 
-	uint8_t len = 5;
+	uint8_t len = 7;
 
 	//Timer Initializers
-	GPIO_Init();
+	GPIO_TIMER_Init();
 	timer4_init();
 
 	//BNO Initializers
-	MX_GPIO_Init();
-	MX_I2C1_Init();
+//	MX_GPIO_Init();
+//	MX_I2C1_Init();
 
-	bno055_assignI2C(&hi2c1);
-	bno055_setup();
-	bno055_setOperationModeNDOF();
+//	bno055_assignI2C(&hi2c1);
+//	bno055_setup();
+//	bno055_setOperationModeNDOF();
 
 	// PS4 Initializations
 	//The GPIO-Acts-As-I2C1 Init
@@ -134,69 +134,14 @@ int main() {
 		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_3, (rcv_buf[0]));
 		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_4, (rcv_buf[1]));
 		HAL_Delay(1);
-		bno055_vector_t v = bno055_getVectorEuler();
-		printf("Heading: %.2f Roll: %.2f Pitch: %.2f\r\n", v.x, v.y, v.z);
+//		bno055_vector_t v = bno055_getVectorEuler();
+//		printf("Heading: %.2f Roll: %.2f Pitch: %.2f\r\n", v.x, v.y, v.z);
 
 	}
 
 	return 0;
 }
 
-void timer4_init() {
-	TIM_OC_InitTypeDef tim4_PWM_Config;
-	htimer4.Instance = TIM4; //Standard macro, defined to the Base address of the timer 6.
-	htimer4.Init.Prescaler = 4999;
-	htimer4.Init.Period = 33600 - 1;
-	if (HAL_TIM_PWM_Init(&htimer4) != HAL_OK) {
-		Error_Handler();
-	}
-	memset(&tim4_PWM_Config, 0, sizeof(tim4_PWM_Config));
-
-	tim4_PWM_Config.OCMode = TIM_OCMODE_PWM1;
-	tim4_PWM_Config.OCPolarity = TIM_OCPOLARITY_HIGH;
-
-	tim4_PWM_Config.Pulse = (htimer4.Init.Period * 25) / 100;
-	if (HAL_TIM_PWM_ConfigChannel(&htimer4, &tim4_PWM_Config, TIM_CHANNEL_1)
-			!= HAL_OK) {
-		Error_Handler();
-	}
-
-	tim4_PWM_Config.Pulse = (htimer4.Init.Period * 45) / 100;
-	if (HAL_TIM_PWM_ConfigChannel(&htimer4, &tim4_PWM_Config, TIM_CHANNEL_2)
-			!= HAL_OK) {
-		Error_Handler();
-
-	}
-
-	tim4_PWM_Config.Pulse = (htimer4.Init.Period * 75) / 100;
-	if (HAL_TIM_PWM_ConfigChannel(&htimer4, &tim4_PWM_Config, TIM_CHANNEL_3)
-			!= HAL_OK) {
-		Error_Handler();
-	}
-
-	tim4_PWM_Config.Pulse = (htimer4.Init.Period * 95) / 100;
-	if (HAL_TIM_PWM_ConfigChannel(&htimer4, &tim4_PWM_Config, TIM_CHANNEL_4)
-			!= HAL_OK) {
-		Error_Handler();
-	}
-
-}
-
-void GPIO_Init() {
-	GPIO_InitTypeDef timer4_gpio;
-	timer4_gpio.Mode = GPIO_MODE_AF_PP;
-	timer4_gpio.Alternate = GPIO_AF2_TIM4;
-	timer4_gpio.Pull = GPIO_NOPULL;
-	timer4_gpio.Speed = GPIO_SPEED_FAST;
-	timer4_gpio.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
-
-	HAL_GPIO_Init(GPIOD, &timer4_gpio);
-}
-
-void Error_Handler() {
-	while (1)
-		;
-}
 
 void SystemClock_Config(uint8_t CLOCK_FREQ) {
 	RCC_OscInitTypeDef osc_init;
@@ -304,6 +249,63 @@ void SystemClock_Config(uint8_t CLOCK_FREQ) {
 	HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 }
 
+void GPIO_TIMER_Init() {
+	GPIO_InitTypeDef timer4_gpio;
+	timer4_gpio.Mode = GPIO_MODE_AF_PP;
+	timer4_gpio.Alternate = GPIO_AF2_TIM4;
+	timer4_gpio.Pull = GPIO_NOPULL;
+	timer4_gpio.Speed = GPIO_SPEED_FAST;
+	timer4_gpio.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
+
+	HAL_GPIO_Init(GPIOD, &timer4_gpio);
+}
+
+void timer4_init() {
+	TIM_OC_InitTypeDef tim4_PWM_Config;
+	htimer4.Instance = TIM4; //Standard macro, defined to the Base address of the timer 6.
+	htimer4.Init.Prescaler = 4999;
+	htimer4.Init.Period = 33600 - 1;
+	if (HAL_TIM_PWM_Init(&htimer4) != HAL_OK) {
+		Error_Handler();
+	}
+	memset(&tim4_PWM_Config, 0, sizeof(tim4_PWM_Config));
+
+	tim4_PWM_Config.OCMode = TIM_OCMODE_PWM1;
+	tim4_PWM_Config.OCPolarity = TIM_OCPOLARITY_HIGH;
+
+	tim4_PWM_Config.Pulse = (htimer4.Init.Period * 25) / 100;
+	if (HAL_TIM_PWM_ConfigChannel(&htimer4, &tim4_PWM_Config, TIM_CHANNEL_1)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+
+	tim4_PWM_Config.Pulse = (htimer4.Init.Period * 45) / 100;
+	if (HAL_TIM_PWM_ConfigChannel(&htimer4, &tim4_PWM_Config, TIM_CHANNEL_2)
+			!= HAL_OK) {
+		Error_Handler();
+
+	}
+
+	tim4_PWM_Config.Pulse = (htimer4.Init.Period * 75) / 100;
+	if (HAL_TIM_PWM_ConfigChannel(&htimer4, &tim4_PWM_Config, TIM_CHANNEL_3)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+
+	tim4_PWM_Config.Pulse = (htimer4.Init.Period * 95) / 100;
+	if (HAL_TIM_PWM_ConfigChannel(&htimer4, &tim4_PWM_Config, TIM_CHANNEL_4)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+
+}
+
+void Error_Handler() {
+	while (1)
+		;
+}
+
+
 void I2C2_GPIOInits(void) {
 	GPIO_Handle_t I2CPins;
 
@@ -316,11 +318,11 @@ void I2C2_GPIOInits(void) {
 
 	//scl
 	I2CPins.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_10;
-	GPIO_Init(&I2CPins);
+	GPIO_Peri_Init(&I2CPins);
 
 	//sda
 	I2CPins.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_11;
-	GPIO_Init(&I2CPins);
+	GPIO_Peri_Init(&I2CPins);
 
 }
 
