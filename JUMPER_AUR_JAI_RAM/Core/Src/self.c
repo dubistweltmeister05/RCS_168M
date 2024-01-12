@@ -29,7 +29,7 @@
  * (I know I am diabolical, but this is a bit too funny to me)
  *
  * PS4 data buffer --> PS18 (Paul Scholes 18, for the absolute controller that he was in the mid-field)
- * BNO data object --> RK16 (Roy Keane 16, man was the balance that set us up for success)
+ * BNO data object --> RK16 (Roy Keane 16, slotting in at CDM, man was the balance that set us up for success)
  * BTS 1 velocity  --> CR7  (Cristiano Ronaldo 7, for the wheel on left wing. May you run as fast as his free-kick)
  * BTS 2 velocity  --> DB7  (David Bechkam 7, for the wheel on the right wing. May you run as smooth as his cross)
  * BTS 3 velocity  --> PE3  (Patrice Evra 3, for the wheel at left back. May you run as reliably as his overlaps)
@@ -43,6 +43,7 @@
 #include "bno055_stm32.h"
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 #include <main.h>
 #include <stm32f407xx.h>
 
@@ -63,23 +64,6 @@
 #define SYS_CLK_FREQ_168 168
 
 /*
- * Handle Variables for the Peripherals
- */
-GPIO_InitTypeDef led;
-
-TIM_HandleTypeDef htimer4;
-
-volatile uint32_t ccr_content;
-
-I2C_Handle_t I2C2Handle;
-
-uint8_t PS_18[7];
-
-bno055_vector_t RK16;
-
-int CR7, DB7, GN2, PE3;
-
-/*
  * Headers for the Functions
  */
 
@@ -93,11 +77,47 @@ void Error_Handler();
 
 void timer4_init();
 
-void gpio_timer_Init();
+void timer3_init();
+
+void gpio_timer4_Init();
+
+void gpio_timer3_Init();
 
 void I2C2_GPIOInits(void);
 
 void I2C2_Inits(void);
+
+long map(long x, long in_min, long in_max, long out_min, long out_max);
+
+void movement(float v, float v_w, float angle, float KP, float KD);
+
+/*
+ * Handle Variables for the Peripherals
+ */
+GPIO_InitTypeDef led;
+
+TIM_HandleTypeDef htimer4;
+
+TIM_HandleTypeDef htimer3;
+
+volatile uint32_t ccr_content;
+
+I2C_Handle_t I2C2Handle;
+
+uint8_t PS_18[7];
+
+bno055_vector_t RK16;
+
+int CR7, DB7, GN2, PE3; //v1,v2,v3,v4
+
+float targated_angle = 0, curr_angle = 0, error = 0, prev_error = 0,
+		correction = 0, diff = 0;
+
+float angle;
+
+float KP = 2.0, KD = 0.9;
+
+float x, y, w, v, v_x, v_y, v_w;
 
 /***********************************************************************************************************************
  * 														MAIN CODE
@@ -123,6 +143,7 @@ int main() {
 	// We gotta run at 168, so here's the one for that
 	System_Clock_Config(SYS_CLK_FREQ_168);
 
+	//BNO inits
 	MX_GPIO_Init();
 	MX_I2C1_Init();
 
@@ -131,10 +152,12 @@ int main() {
 	bno055_setOperationModeNDOF();
 
 	//The GPIO-Acts-As-Timer Init
-	gpio_timer_Init();
+	gpio_timer4_Init();
+	gpio_timer3_Init();
 
 	//The actual Timer Init
 	timer4_init();
+	timer3_init();
 
 	//The GPIO-Acts-As-I2C1 Init
 	I2C2_GPIOInits();
@@ -189,22 +212,41 @@ int main() {
 		RK16 = bno055_getVectorEuler();
 		//We care only about the heading [;-)]
 		printf("Heading: %.2f\r\n", RK16.x);
+		curr_angle = (RK16.x);
+		if (curr_angle > 180)
+			curr_angle = curr_angle - 360;
+
+		/***********************************************************************************************************************
+		 * 											PROCESSING OF DATA RECEIVED FROM PS_18
+		 ***********************************************************************************************************************/
+
+		//Converting the LeftHatX value to a suitable range
+		if ((PS_18[0] < 138) && (PS_18[0] > 116))
+			x = 0;
+		else
+			x = map(PS_18[0], 0, 255, -127, 127);
+		//Converting the LeftHatY value to a suitable range
+		if ((PS_18[1] < 138) && (PS_18[1] > 116))
+			y = 0;
+		else
+			y = map(PS_18[1], 0, 255, -127, 127);
+
+		v = sqrt((pow(x, 2) + pow(y, 2)));
+
+		v = map(v, 0, 150, 0, 100);
+
+		v_w = map(w, 0, 255, 0, 43);
+
+		angle = atan2(y, x);
 
 		/***********************************************************************************************************************
 		 * 												COMMANDS TO THE WIDEOUTS
 		 ***********************************************************************************************************************/
 
-		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_1, CR7);
-		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_2, DB7);
-		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_3, GN2);
-		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_4, PE3);
-		HAL_Delay(1);
-
+		movement(v, v_w, angle, KP, KD);
 	}
 	return 0;
 }
-
-
 
 void timer4_init() {
 	TIM_OC_InitTypeDef tim4_PWM_Config;
@@ -244,11 +286,53 @@ void timer4_init() {
 		Error_Handler();
 	}
 
-	printf("Timers are running\n");
+	printf("Timer 4 is running\n");
 
 }
 
-void gpio_timer_Init() {
+void timer3_init() {
+	TIM_OC_InitTypeDef tim3_PWM_Config;
+	htimer3.Instance = TIM3; //Standard macro, defined to the Base address of the timer 6.
+	htimer3.Init.Prescaler = 4999;
+	htimer3.Init.Period = 256 - 1;
+	if (HAL_TIM_PWM_Init(&htimer3) != HAL_OK) {
+		Error_Handler();
+	}
+	memset(&tim3_PWM_Config, 0, sizeof(tim3_PWM_Config));
+
+	tim3_PWM_Config.OCMode = TIM_OCMODE_PWM1;
+	tim3_PWM_Config.OCPolarity = TIM_OCPOLARITY_HIGH;
+
+	tim3_PWM_Config.Pulse = 0;
+	if (HAL_TIM_PWM_ConfigChannel(&htimer3, &tim3_PWM_Config, TIM_CHANNEL_1)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+
+	tim3_PWM_Config.Pulse = 0;
+	if (HAL_TIM_PWM_ConfigChannel(&htimer3, &tim3_PWM_Config, TIM_CHANNEL_2)
+			!= HAL_OK) {
+		Error_Handler();
+
+	}
+
+	tim3_PWM_Config.Pulse = 0;
+	if (HAL_TIM_PWM_ConfigChannel(&htimer3, &tim3_PWM_Config, TIM_CHANNEL_3)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+
+	tim3_PWM_Config.Pulse = 0;
+	if (HAL_TIM_PWM_ConfigChannel(&htimer3, &tim3_PWM_Config, TIM_CHANNEL_4)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+
+	printf("Timer 3 is running\n");
+
+}
+
+void gpio_timer4_Init() {
 	GPIO_InitTypeDef timer4_gpio;
 	timer4_gpio.Mode = GPIO_MODE_AF_PP;
 	timer4_gpio.Alternate = GPIO_AF2_TIM4;
@@ -257,6 +341,18 @@ void gpio_timer_Init() {
 	timer4_gpio.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
 
 	HAL_GPIO_Init(GPIOD, &timer4_gpio);
+
+	printf("Timer GPIOs Are Running\n");
+}
+void gpio_timer3_Init() {
+	GPIO_InitTypeDef timer3_gpio;
+	timer3_gpio.Mode = GPIO_MODE_AF_PP;
+	timer3_gpio.Alternate = GPIO_AF2_TIM3;
+	timer3_gpio.Pull = GPIO_NOPULL;
+	timer3_gpio.Speed = GPIO_SPEED_FAST;
+	timer3_gpio.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
+
+	HAL_GPIO_Init(GPIOD, &timer3_gpio);
 
 	printf("Timer GPIOs Are Running\n");
 }
@@ -402,4 +498,72 @@ void I2C2_Inits(void) {
 
 	I2C_Init(&I2C2Handle);
 
+}
+
+void movement(float v, float v_w, float angle, float KP, float KD) {
+	if (v > 95)
+		v = 95;
+
+	v_x = v * cos(angle);
+
+	v_y = v * sin(angle);
+
+	error = curr_angle - targated_angle;
+	if (error < -180)
+		error = error + 360;
+	else if (error > 180)
+		error = error - 360;
+
+	diff = error - prev_error;
+
+	correction = (error * KP) + (diff * KD);
+
+	prev_error = error;
+
+	CR7 = ((0.70711 * (-v_x)) + (0.707 * (v_y)) - (0.707 * v_w)) + correction;
+	DB7 = ((0.70711 * (-v_x)) + (0.707 * (-v_y)) - (0.707 * v_w)) + correction;
+	PE3 = ((0.70711 * (v_x)) + (0.70711 * (-v_y)) - (0.707 * v_w)) + correction;
+	GN2 = ((0.70711 * (v_x)) + (0.707 * (v_y)) - (0.707 * v_w)) + correction;
+
+	if (CR7 > 0) {
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_1, CR7);
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_2, 0);
+	} else {
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_1, 0);
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_2, (CR7 * (-1)));
+	}
+
+	if (DB7 > 0) {
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_3, DB7);
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_4, 0);
+	} else {
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_3, 0);
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_4, (DB7 * (-1)));
+
+	}
+
+	if (PE3 > 0) {
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_1, PE3);
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_2, 0);
+	} else {
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_1, 0);
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_2, (PE3 * (-1)));
+
+	}
+
+	if(GN2>0){
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_3, GN2);
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_4, 0);
+
+	}
+	else{
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_3, 0);
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_4, (GN2 * (-1)));
+
+	}
+
+}
+
+long map(long x, long in_min, long in_max, long out_min, long out_max) {
+	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
