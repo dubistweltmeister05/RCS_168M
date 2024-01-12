@@ -34,6 +34,13 @@
  * BTS 2 velocity  --> DB7  (David Bechkam 7, for the wheel on the right wing. May you run as smooth as his cross)
  * BTS 3 velocity  --> PE3  (Patrice Evra 3, for the wheel at left back. May you run as reliably as his overlaps)
  * BTS 4 velocity  --> GN2  (Gary Neville 2, for the wheel at right back. May you run as long as his career)
+ *
+ * And, some additional clearance as neede to understand this.
+ * TIMER3 ch 1 & 2 --> BTS 1 RPWM & LPWM (CR7)
+ * TIMER3 ch 3 & 4 --> BTS 2 RPWM & LPWM (DB7)
+ * TIMER4 ch 1 & 2 --> BTS 3 RPWM & LPWM (PE3)
+ * TIMER4 ch 3 & 4 --> BTS 4 RPWM & LPWM (GN2)
+ *
  */
 
 #include "i2c.h"
