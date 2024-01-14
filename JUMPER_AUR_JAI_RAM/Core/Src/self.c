@@ -35,7 +35,7 @@
  * BTS 3 velocity  --> PE3  (Patrice Evra 3, for the wheel at left back. May you run as reliably as his overlaps)
  * BTS 4 velocity  --> GN2  (Gary Neville 2, for the wheel at right back. May you run as long as his career)
  *
- * And, some additional clearance as neede to understand this.
+ * And, some additional clearance as needed to understand this.
  * TIMER3 ch 1 & 2 --> BTS 1 RPWM & LPWM (CR7)
  * TIMER3 ch 3 & 4 --> BTS 2 RPWM & LPWM (DB7)
  * TIMER4 ch 1 & 2 --> BTS 3 RPWM & LPWM (PE3)
@@ -213,17 +213,6 @@ int main() {
 				PS_18[2], PS_18[3], PS_18[4]);
 
 		/***********************************************************************************************************************
-		 * 												BALANCE FROM RK16
-		 ***********************************************************************************************************************/
-
-		RK16 = bno055_getVectorEuler();
-		//We care only about the heading [;-)]
-		printf("Heading: %.2f\r\n", RK16.x);
-		curr_angle = (RK16.x);
-		if (curr_angle > 180)
-			curr_angle = curr_angle - 360;
-
-		/***********************************************************************************************************************
 		 * 											PROCESSING OF DATA RECEIVED FROM PS_18
 		 ***********************************************************************************************************************/
 
@@ -247,12 +236,91 @@ int main() {
 		angle = atan2(y, x);
 
 		/***********************************************************************************************************************
+		 * 												BALANCE FROM RK16
+		 ***********************************************************************************************************************/
+
+		RK16 = bno055_getVectorEuler();
+		//We care only about the heading [;-)]
+		printf("Heading: %.2f\r\n", RK16.x);
+		curr_angle = (RK16.x);
+		if (curr_angle > 180)
+			curr_angle = curr_angle - 360;
+
+		/***********************************************************************************************************************
 		 * 												COMMANDS TO THE WIDEOUTS
 		 ***********************************************************************************************************************/
 
 		movement(v, v_w, angle, KP, KD);
 	}
 	return 0;
+}
+
+void movement(float v, float v_w, float angle, float KP, float KD) {
+	if (v > 95)
+		v = 95;
+
+	v_x = v * cos(angle);
+
+	v_y = v * sin(angle);
+
+	//PID
+
+	error = curr_angle - targated_angle;
+	if (error < -180) {
+		error = error + 360;
+	}
+
+	else if (error > 180) {
+		error = error - 360;
+	}
+
+	diff = error - prev_error;
+
+	correction = (error * KP) + (diff * KD);
+
+	prev_error = error;
+
+	CR7 = ((0.70711 * (-v_x)) + (0.707 * (v_y)) - (0.707 * v_w)) + correction;
+	DB7 = ((0.70711 * (-v_x)) + (0.707 * (-v_y)) - (0.707 * v_w)) + correction;
+	GN2 = ((0.70711 * (v_x)) + (0.70711 * (-v_y)) - (0.707 * v_w)) + correction;
+	PE3 = ((0.70711 * (v_x)) + (0.707 * (v_y)) - (0.707 * v_w)) + correction;
+
+	if (CR7 > 0) {
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_1, CR7);
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_2, 0);
+	} else {
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_1, 0);
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_2, (CR7 * (-1)));
+	}
+
+	if (DB7 > 0) {
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_3, DB7);
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_4, 0);
+	} else {
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_3, 0);
+		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_4, (DB7 * (-1)));
+
+	}
+
+	if (GN2 > 0) {
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_1, GN2);
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_2, 0);
+	} else {
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_1, 0);
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_2, (GN2 * (-1)));
+
+	}
+
+	if (PE3 > 0) {
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_3, PE3);
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_4, 0);
+
+	} else {
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_3, 0);
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_4, (PE3* (-1)));
+
+	}
+
 }
 
 void timer4_init() {
@@ -504,70 +572,6 @@ void I2C2_Inits(void) {
 	I2C2Handle.I2C_Config.I2C_SCLSpeed = I2C_SCL_SPEED_SM;
 
 	I2C_Init(&I2C2Handle);
-
-}
-
-void movement(float v, float v_w, float angle, float KP, float KD) {
-	if (v > 95)
-		v = 95;
-
-	v_x = v * cos(angle);
-
-	v_y = v * sin(angle);
-
-	error = curr_angle - targated_angle;
-	if (error < -180)
-		error = error + 360;
-	else if (error > 180)
-		error = error - 360;
-
-	diff = error - prev_error;
-
-	correction = (error * KP) + (diff * KD);
-
-	prev_error = error;
-
-	CR7 = ((0.70711 * (-v_x)) + (0.707 * (v_y)) - (0.707 * v_w)) + correction;
-	DB7 = ((0.70711 * (-v_x)) + (0.707 * (-v_y)) - (0.707 * v_w)) + correction;
-	PE3 = ((0.70711 * (v_x)) + (0.70711 * (-v_y)) - (0.707 * v_w)) + correction;
-	GN2 = ((0.70711 * (v_x)) + (0.707 * (v_y)) - (0.707 * v_w)) + correction;
-
-	if (CR7 > 0) {
-		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_1, CR7);
-		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_2, 0);
-	} else {
-		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_1, 0);
-		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_2, (CR7 * (-1)));
-	}
-
-	if (DB7 > 0) {
-		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_3, DB7);
-		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_4, 0);
-	} else {
-		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_3, 0);
-		__HAL_TIM_SET_COMPARE(&htimer3, TIM_CHANNEL_4, (DB7 * (-1)));
-
-	}
-
-	if (PE3 > 0) {
-		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_1, PE3);
-		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_2, 0);
-	} else {
-		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_1, 0);
-		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_2, (PE3 * (-1)));
-
-	}
-
-	if(GN2>0){
-		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_3, GN2);
-		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_4, 0);
-
-	}
-	else{
-		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_3, 0);
-		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_4, (GN2 * (-1)));
-
-	}
 
 }
 
