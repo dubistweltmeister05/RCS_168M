@@ -222,6 +222,7 @@ void SystemClock_Config(uint8_t CLOCK_FREQ) {
 		clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
 
 		FLatency = FLASH_ACR_LATENCY_5WS;
+		printf("RUNNING AT  %d\n", HAL_RCC_GetHCLKFreq());
 		break;
 	}
 	default:

@@ -55,9 +55,7 @@ uint8_t rcv_buf[7];
  */
 extern void initialise_monitor_handles(void);
 
-void System_Clock_Config(uint8_t CLOCK_FREQ);
-
-void SystemClock_Config();
+void SystemClock_Config(uint8_t CLOCK_FREQ);
 
 void Error_Handler();
 
@@ -162,9 +160,6 @@ int main() {
 	return 0;
 }
 
-void SystemClock_Config() {
-
-}
 
 void timer4_init() {
 	TIM_OC_InitTypeDef tim4_PWM_Config;
@@ -225,8 +220,7 @@ void Error_Handler() {
 	while (1)
 		;
 }
-
-void System_Clock_Config(uint8_t CLOCK_FREQ) {
+void SystemClock_Config(uint8_t CLOCK_FREQ) {
 	RCC_OscInitTypeDef osc_init;
 	RCC_ClkInitTypeDef clk_init;
 	uint32_t FLatency = 0;
@@ -292,21 +286,23 @@ void System_Clock_Config(uint8_t CLOCK_FREQ) {
 		//Set Voltage Scale As 1
 		__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-		osc_init.PLL.PLLM = 8;
-		osc_init.PLL.PLLN = 336;
-		osc_init.PLL.PLLP = 2;
-		osc_init.PLL.PLLQ = 2;
 
-		clk_init.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
-		RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-		clk_init.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-		clk_init.AHBCLKDivider = RCC_SYSCLK_DIV1;
-		clk_init.APB1CLKDivider = RCC_HCLK_DIV4;
-		clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
 
-		FLatency = FLASH_ACR_LATENCY_5WS;
-		break;
-	}
+			osc_init.PLL.PLLM = 8;
+			osc_init.PLL.PLLN = 336;
+			osc_init.PLL.PLLP = 2;
+			osc_init.PLL.PLLQ = 2;
+
+			clk_init.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
+			RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+			clk_init.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+			clk_init.AHBCLKDivider = RCC_SYSCLK_DIV1;
+			clk_init.APB1CLKDivider = RCC_HCLK_DIV4;
+			clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
+
+			FLatency = FLASH_ACR_LATENCY_5WS;
+			break;
+		}
 	default:
 		return;
 
@@ -330,7 +326,10 @@ void System_Clock_Config(uint8_t CLOCK_FREQ) {
 
 	HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / 1000);
 	HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
+//	printf("The SYSCLK is --> %ld\n", HAL_RCC_GetSysClockFreq());
+	printf("The HCLK is --> %ld\n", HAL_RCC_GetHCLKFreq());
 }
+
 
 void I2C2_GPIOInits(void) {
 	GPIO_Handle_t I2CPins;

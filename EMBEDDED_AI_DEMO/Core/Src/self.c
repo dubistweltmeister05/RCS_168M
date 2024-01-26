@@ -1,17 +1,10 @@
-/*
- * Are your dreams really worth trying if they don't let you sleep?
- */
+/*********************************************************************************************************************************
+ * 							  Are your dreams really worth trying if they don't let you sleep?
+ *********************************************************************************************************************************/
+
 
 /*
- * Good morning lads and lasses. Welcome aboard the RCS-168M.
- * Wish you all a speedy win!
- */
-
-/*
- * Instead of the big header files, we have a pair of files (.h and .c)
- * for each of the peripherals that we have initialized via the cube.
  *
- * And, some additional clearance as needed to understand this.
  * TIMER3 ch 1 & 2 --> BTS 1 RPWM & LPWM (V1)
  * TIMER3 ch 3 & 4 --> BTS 2 RPWM & LPWM (V2)
  * TIMER4 ch 1 & 2 --> BTS 3 RPWM & LPWM (V3)
@@ -80,6 +73,7 @@ void movement(float v, float v_w, float angle, float KP, float KD);
 /*
  * Handle Variables for the Peripherals
  */
+
 GPIO_InitTypeDef led;
 
 TIM_HandleTypeDef htimer4;
@@ -296,7 +290,7 @@ void movement(float v, float v_w, float angle, float KP, float KD) {
 
 	} else {
 		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_3, 0);
-		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_4, (V3* (-1)));
+		__HAL_TIM_SET_COMPARE(&htimer4, TIM_CHANNEL_4, (V3 * (-1)));
 
 	}
 
@@ -495,6 +489,7 @@ void System_Clock_Config(uint8_t CLOCK_FREQ) {
 		clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
 
 		FLatency = FLASH_ACR_LATENCY_5WS;
+		printf("RUNNING AT %d SIR \n", HAL_RCC_GetHCLKFreq());
 		break;
 	}
 	default:
