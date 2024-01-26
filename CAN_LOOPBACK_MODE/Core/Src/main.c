@@ -13,6 +13,8 @@ void SystemClock_Config(uint8_t CLOCK_FREQ);
 
 void CAN1_Init(void);
 
+void CAN1_Tx(void);
+
 extern void initialise_monitor_handles(void);
 
 CAN_HandleTypeDef hcan1;
@@ -24,6 +26,9 @@ int main() {
 	HAL_Init();
 	SystemClock_Config(SYS_CLK_FREQ_168);
 
+	CAN1_Init();
+
+	CAN1_Tx();
 	while(1);
 
 	return 0;
@@ -33,6 +38,11 @@ void Error_handler() {
 	while (1)
 		;
 }
+
+void CAN1_Tx(void){
+
+}
+
 void CAN1_Init(void)
 {
 	hcan1.Instance = CAN1;
