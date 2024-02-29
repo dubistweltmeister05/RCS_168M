@@ -5,13 +5,13 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../Src/Ps4_Interfacing_Arduino.c 
+../Src/led_toggle.c 
 
 OBJS += \
-./Src/Ps4_Interfacing_Arduino.o 
+./Src/led_toggle.o 
 
 C_DEPS += \
-./Src/Ps4_Interfacing_Arduino.d 
+./Src/led_toggle.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -21,7 +21,7 @@ Src/%.o Src/%.su Src/%.cyclo: ../Src/%.c Src/subdir.mk
 clean: clean-Src
 
 clean-Src:
-	-$(RM) ./Src/Ps4_Interfacing_Arduino.cyclo ./Src/Ps4_Interfacing_Arduino.d ./Src/Ps4_Interfacing_Arduino.o ./Src/Ps4_Interfacing_Arduino.su
+	-$(RM) ./Src/led_toggle.cyclo ./Src/led_toggle.d ./Src/led_toggle.o ./Src/led_toggle.su
 
 .PHONY: clean-Src
 

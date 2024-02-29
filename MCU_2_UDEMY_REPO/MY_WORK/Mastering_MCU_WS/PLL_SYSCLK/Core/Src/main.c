@@ -31,9 +31,11 @@ int main() {
 	HAL_Init();
 	SystemClock_Config(SYS_CLK_FREQ_168);
 
-	printf("Gold Eagle Actual to Bravo 6-> Send in the Clock Speeds for the COnfiguration used\n");
+	printf(
+			"Gold Eagle Actual to Bravo 6-> Send in the Clock Speeds for the COnfiguration used\n");
 
-	printf("Bravo-6 to Gold Eagle actual-> Acknowledged. Sending in the Values\n ");
+	printf(
+			"Bravo-6 to Gold Eagle actual-> Acknowledged. Sending in the Values\n ");
 
 	printf("The SYSCLK is --> %ld\n", HAL_RCC_GetSysClockFreq());
 	printf("The HCLK is --> %ld\n", HAL_RCC_GetHCLKFreq());
@@ -111,23 +113,21 @@ void SystemClock_Config(uint8_t CLOCK_FREQ) {
 		//Set Voltage Scale As 1
 		__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
+		osc_init.PLL.PLLM = 8;
+		osc_init.PLL.PLLN = 336;
+		osc_init.PLL.PLLP = 2;
+		osc_init.PLL.PLLQ = 2;
 
+		clk_init.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
+		RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+		clk_init.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+		clk_init.AHBCLKDivider = RCC_SYSCLK_DIV1;
+		clk_init.APB1CLKDivider = RCC_HCLK_DIV4;
+		clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
 
-			osc_init.PLL.PLLM = 8;
-			osc_init.PLL.PLLN = 336;
-			osc_init.PLL.PLLP = 2;
-			osc_init.PLL.PLLQ = 2;
-
-			clk_init.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
-			RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-			clk_init.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-			clk_init.AHBCLKDivider = RCC_SYSCLK_DIV1;
-			clk_init.APB1CLKDivider = RCC_HCLK_DIV4;
-			clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
-
-			FLatency = FLASH_ACR_LATENCY_5WS;
-			break;
-		}
+		FLatency = FLASH_ACR_LATENCY_5WS;
+		break;
+	}
 	default:
 		return;
 
@@ -153,6 +153,8 @@ void SystemClock_Config(uint8_t CLOCK_FREQ) {
 	HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 	printf("The SYSCLK is --> %ld\n", HAL_RCC_GetSysClockFreq());
 }
+
+
 
 void UART2_Inits() {
 	huart2.Instance = USART2;

@@ -3,11 +3,15 @@
  *
  *  Created on: Jan 25, 2024
  *      Author: wardawg
+ *
+ *      Using PD0 and PD1
  */
 
 #include "stm32f4xx_hal.h"
 
 #include "main.h"
+\
+#include "stdio.h"
 
 void SystemClock_Config(uint8_t CLOCK_FREQ);
 
@@ -24,11 +28,21 @@ int main() {
 	initialise_monitor_handles();
 
 	HAL_Init();
+
 	SystemClock_Config(SYS_CLK_FREQ_168);
+
+	printf("The sysclk is up and running at %ld \n", HAL_RCC_GetSysClockFreq());
+
+	printf("This is Bravo-6 reaching out to all friendlies. I have a message to send using CAN \n");
+
+	printf("This is Echo 3-1. Send Traffic Bravo-6 \n");
 
 	CAN1_Init();
 
+	HAL_CAN_Start(&hcan1);
+
 	CAN1_Tx();
+
 	while(1);
 
 	return 0;
@@ -40,6 +54,22 @@ void Error_handler() {
 }
 
 void CAN1_Tx(void){
+	CAN_TxHeaderTypeDef TxHeader;
+	uint32_t mailbox;
+	uint8_t msg[5] = {'H','E','L','L','O'};
+	TxHeader.DLC = 5;
+	TxHeader.StdId = 0x65D;
+	TxHeader.IDE = CAN_ID_STD;
+	TxHeader.RTR =  CAN_RTR_DATA;
+
+	if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, msg, &mailbox)!= HAL_OK){
+		Error_handler();
+		printf("You made an error dumbass\n");
+	}
+
+	while(HAL_CAN_IsTxMessagePending(&hcan1, mailbox));
+
+	printf("Alright, looks good over here. CAN Message Has been sent captain! \n");
 
 }
 
